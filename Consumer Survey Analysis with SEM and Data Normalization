@@ -1,7 +1,6 @@
-"""
-Generalized Consumer Survey Analysis with SEM and Data Normalization
-
 This script is designed to analyze consumer survey data using Structural Equation Modeling (SEM).
+
+
 It provides:
 1. Data preprocessing (mapping categorical variables, normalizing, and handling NaNs).
 2. Covariance matrix computation and positive definiteness adjustment.
