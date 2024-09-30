@@ -1,0 +1,118 @@
+This script is designed to help visualize relationships in any consumer survey dataset.
+
+
+It includes:
+1. Data mapping for categorical variables.
+2. Normalization of numerical columns.
+3. Visualization using Seaborn and Matplotlib.
+
+Instructions:
+1. Replace `data = pd.read_csv(<path_to_your_file>)` with the path to your dataset.
+2. Define the mappings for categorical variables in `mappings` dictionary.
+3. Adjust column names in the visualization code as per your dataset.
+4. Add or modify visualizations as needed.
+
+Required Libraries:
+- pandas
+- seaborn
+- matplotlib
+- sklearn
+
+Ensure you have installed the required libraries:
+`pip install pandas seaborn matplotlib scikit-learn`
+"""
+
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+from sklearn.preprocessing import MinMaxScaler
+
+# Load your dataset (modify the path as needed)
+# Replace 'your_survey_dataset.csv' with your own file path
+data = pd.read_csv('your_survey_dataset.csv')
+
+# Define mappings for categorical variables
+# Customize this dictionary to include mappings relevant to your dataset.
+# Example: 'column_name': {'Category1': 1, 'Category2': 2, ...}
+mappings = {
+    'Category_Column_1': {'Option A': 1, 'Option B': 2, 'Option C': 3},
+    'Category_Column_2': {'Group 1': 1, 'Group 2': 2},
+    # Add more mappings as needed
+}
+
+# Apply mappings to categorical columns
+for column, mapping in mappings.items():
+    if column in data.columns:
+        print(f"\nMapping column: {column}")
+        print(f"Unique values before mapping: {data[column].unique()}")
+        data[column] = data[column].map(mapping)
+        if data[column].isna().any():
+            print(f"Warning: Unmapped values found in {column}. Assigning '0' to these.")
+            data[column] = data[column].fillna(0).astype(int)
+        else:
+            data[column] = data[column].astype(int)
+        print(f"Unique values after mapping: {data[column].unique()}")
+
+# Convert remaining numerical columns to numeric type if needed
+numeric_columns = ['Your_Numeric_Column_1', 'Your_Numeric_Column_2']  # Replace with actual numeric columns
+
+for column in numeric_columns:
+    if column in data.columns:
+        data[column] = pd.to_numeric(data[column], errors='coerce')
+        print(f"\nConverted {column} to numeric.")
+        print(f"Unique values in {column}: {data[column].unique()}")
+
+# Handle missing data by filling NaN values with the column mean for numerical columns
+data[numeric_columns] = data[numeric_columns].fillna(data[numeric_columns].mean())
+
+# Normalize specified numerical columns using MinMaxScaler
+# Replace 'columns_to_normalize' with the numerical columns you want to normalize
+columns_to_normalize = ['Your_Numeric_Column_1', 'Your_Numeric_Column_2']
+scaler = MinMaxScaler()
+data[columns_to_normalize] = scaler.fit_transform(data[columns_to_normalize])
+print("\nNormalized numerical columns.")
+
+# Custom visualizations
+# Modify the variables below based on the columns in your dataset
+
+# Pathway 1 Visualization: Relationship between Category A and Category B
+plt.figure(figsize=(14, 6))
+
+# Subplot 1: Category_Column_1 vs Category_Column_2
+plt.subplot(1, 2, 1)
+sns.boxplot(x='Category_Column_1', y='Category_Column_2', data=data, hue='Category_Column_2', palette='Set2', legend=False)
+plt.title("Boxplot of Category_Column_1 vs Category_Column_2")
+plt.xlabel("Category Column 1")
+plt.ylabel("Category Column 2")
+
+# Subplot 2: Category_Column_2 vs Your_Numeric_Column_1
+plt.subplot(1, 2, 2)
+sns.boxplot(x='Category_Column_2', y='Your_Numeric_Column_1', data=data, hue='Category_Column_2', palette='Set2', legend=False)
+plt.title("Boxplot of Category_Column_2 vs Your_Numeric_Column_1")
+plt.xlabel("Category Column 2")
+plt.ylabel("Numeric Column 1")
+
+plt.tight_layout()
+plt.show()
+
+# Pathway 2 Visualization: Relationship between a categorical variable and a numeric variable
+plt.figure(figsize=(7, 6))
+sns.boxplot(x='Category_Column_1', y='Your_Numeric_Column_2', data=data, hue='Category_Column_1', palette='Set1', legend=False)
+plt.title("Boxplot of Category_Column_1 vs Numeric Column 2")
+plt.xlabel("Category Column 1")
+plt.ylabel("Numeric Column 2")
+plt.show()
+
+# Pathway 3 Visualization: Relationship between two numeric variables
+plt.figure(figsize=(7, 6))
+sns.boxplot(x='Your_Numeric_Column_1', y='Your_Numeric_Column_2', data=data, hue='Your_Numeric_Column_1', palette='Set1', legend=False)
+plt.title("Boxplot of Numeric Column 1 vs Numeric Column 2")
+plt.xlabel("Numeric Column 1")
+plt.ylabel("Numeric Column 2")
+plt.show()
+
+# Optional: Save plots as images if needed
+plt.savefig("pathway_visualizations.png")
+
+# Summary of findings (optional): Include summary and insights based on visualizations here
+print("\nVisualizations generated successfully. Customize the pathway relationships as needed.")
