@@ -1,0 +1,145 @@
+"""
+Generalized Consumer Survey Analysis with SEM and Data Normalization
+
+This script is designed to analyze consumer survey data using Structural Equation Modeling (SEM).
+It provides:
+1. Data preprocessing (mapping categorical variables, normalizing, and handling NaNs).
+2. Covariance matrix computation and positive definiteness adjustment.
+3. SEM model definition and evaluation.
+
+Instructions:
+1. Replace `data = pd.read_csv(<path_to_your_file>)` with the path to your dataset.
+2. Define the mappings for categorical variables in `mappings` dictionary.
+3. Customize the SEM model description in `model_desc` as per your analysis needs.
+
+Required Libraries:
+- pandas
+- numpy
+- sklearn
+- semopy
+- statsmodels
+
+Ensure you have installed the required libraries:
+`pip install pandas numpy scikit-learn semopy statsmodels`
+"""
+
+import pandas as pd
+import numpy as np
+from sklearn.preprocessing import MinMaxScaler
+from semopy import Model, calc_stats
+from statsmodels.stats.correlation_tools import cov_nearest
+
+# Load your dataset (modify the path as needed)
+# Replace 'your_survey_dataset.csv' with your own file path
+data = pd.read_csv('your_survey_dataset.csv')
+
+# Define mappings for categorical variables
+# Customize this dictionary to include mappings relevant to your dataset.
+# Example: 'column_name': {'Category1': 1, 'Category2': 2, ...}
+mappings = {
+    'Example_Category_1': {'Option A': 1, 'Option B': 2, 'Option C': 3},
+    'Example_Category_2': {'Group 1': 1, 'Group 2': 2},
+    # Add more mappings as needed
+}
+
+# Apply mappings to categorical columns
+for column, mapping in mappings.items():
+    if column in data.columns:
+        print(f"\nMapping column: {column}")
+        print(f"Unique values before mapping: {data[column].unique()}")
+        data[column] = data[column].map(mapping)
+        if data[column].isna().any():
+            print(f"Warning: Unmapped values found in {column}. Assigning '0' to these.")
+            data[column] = data[column].fillna(0).astype(int)
+        else:
+            data[column] = data[column].astype(int)
+        print(f"Unique values after mapping: {data[column].unique()}")
+
+# Convert remaining numerical columns to numeric type
+# Replace 'numeric_columns' with the columns in your dataset that should be treated as numerical
+numeric_columns = ['Your_Numeric_Column_1', 'Your_Numeric_Column_2', 'Your_Numeric_Column_3']
+
+for column in numeric_columns:
+    if column in data.columns:
+        data[column] = pd.to_numeric(data[column], errors='coerce')
+        print(f"\nConverted {column} to numeric.")
+        print(f"Unique values in {column}: {data[column].unique()}")
+
+# Check for and drop any remaining non-numeric columns if necessary
+non_numeric = data.select_dtypes(include=['object']).columns.tolist()
+if non_numeric:
+    print("\nNon-numeric columns detected after mapping:")
+    print(non_numeric)
+    data = data.drop(columns=non_numeric)
+    print(f"Dropped non-numeric columns: {non_numeric}")
+
+# Handle missing data by filling NaN values with the column mean for numerical columns
+data[numeric_columns] = data[numeric_columns].fillna(data[numeric_columns].mean())
+
+# Verify there are no remaining NaNs
+print("\nCheck for NaNs after filling:")
+print(data.isna().sum())
+
+# Normalize specified numerical columns using MinMaxScaler
+# Replace 'columns_to_normalize' with the numerical columns you want to normalize
+columns_to_normalize = ['Your_Numeric_Column_1', 'Your_Numeric_Column_2', 'Your_Numeric_Column_3']
+scaler = MinMaxScaler()
+data[columns_to_normalize] = scaler.fit_transform(data[columns_to_normalize])
+print("\nNormalized numerical columns.")
+
+# Compute covariance matrix for diagnostics (not used for SEM fitting)
+cov_matrix = data.cov()
+print("\nCovariance matrix:")
+print(cov_matrix)
+
+# Make covariance matrix positive definite using cov_nearest
+try:
+    cov_matrix_pd = cov_nearest(cov_matrix, threshold=1e-6)
+    print("\nAdjusted covariance matrix to be positive definite.")
+except np.linalg.LinAlgError as e:
+    print(f"\nError in making covariance matrix positive definite: {e}")
+    cov_matrix_pd = cov_matrix  # Fallback to original covariance matrix
+
+# Check if covariance matrix is positive definite
+eigenvalues = np.linalg.eigvals(cov_matrix_pd)
+if np.all(eigenvalues > 0):
+    print("Covariance matrix is positive definite.")
+else:
+    print("Covariance matrix is not positive definite even after adjustment.")
+
+# Define SEM Model description
+# Replace the model description below with the specific pathways and relationships you want to analyze
+model_desc = """
+# Example Pathway 1: Factor 1 → Factor 2
+Factor_2 ~ Factor_1
+
+# Example Pathway 2: Factor 2 → Outcome Variable
+Outcome_Variable ~ Factor_2
+
+# Add more pathways as needed based on your research or analysis model
+"""
+
+# Initialize and fit the SEM model using raw data
+model = Model(model_desc)
+try:
+    model.fit(data)
+    print("\nSEM model fitted successfully.")
+except Exception as e:
+    print(f"\nError fitting SEM model: {e}")
+
+# Evaluate the SEM model
+stats = calc_stats(model)
+print("\nModel Fit Statistics:")
+print(stats)
+
+# Output key fit indices
+chi_square = stats.get('chi2', 'Not available')
+cfi = stats.get('CFI', 'Not available')
+tli = stats.get('TLI', 'Not available')
+rmsea = stats.get('RMSEA', 'Not available')
+print(f"\nChi-Square: {chi_square}, CFI: {cfi}, TLI: {tli}, RMSEA: {rmsea}")
+
+# Export results to CSV if needed
+model_results = model.inspect()
+model_results.to_csv("sem_analysis_results.csv", index=False)
+print("\nSEM analysis results exported to 'sem_analysis_results.csv'.")
